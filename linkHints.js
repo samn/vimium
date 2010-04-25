@@ -12,6 +12,7 @@ var hintMarkerContainingDiv = null;
 // The characters that were typed in while in "link hints" mode.
 var hintKeystrokeQueue = [];
 var linkHintsModeActivated = false;
+var repeatLinkHintsMode = false;
 var shouldOpenLinkHintInNewTab = false;
 // Whether we have added to the page the CSS needed to display link hints.
 var linkHintsCssAdded = false;
@@ -32,6 +33,12 @@ var clickableElementsXPath = (function() {
 // We need this as a top-level function because our command system doesn't yet support arguments.
 function activateLinkHintsModeToOpenInNewTab() { activateLinkHintsMode(true); }
 
+// This activates link hints mode so that it will re-enter hint mode after making a selection.
+function activateRepeatedLinkHintsMode() { 
+  repeatLinkHintsMode = true;
+  activateLinkHintsMode(true);
+}
+   
 function activateLinkHintsMode(openInNewTab) {
   if (!linkHintsCssAdded)
     addCssToPage(linkHintCss); // linkHintCss is declared by vimiumFrontend.js
@@ -140,29 +147,36 @@ function onKeyDownInLinkHintsMode(event) {
 
 /*
  * Updates the visibility of link hints on screen based on the keystrokes typed thus far. If only one
- * link hint remains, click on that link and exit link hints mode.
+ * link hint remains, click on that link.  If repeatLinkHintsMode is not true, exit link hints mode.
  */
 function updateLinkHints() {
   var matchString = hintKeystrokeQueue.join("");
   var linksMatched = highlightLinkMatches(matchString);
-  if (linksMatched.length == 0)
-    deactivateLinkHintsMode();
-  else if (linksMatched.length == 1) {
-    var matchedLink = linksMatched[0];
-    if (isSelectable(matchedLink)) {
-      matchedLink.focus();
-      // When focusing a textbox, put the selection caret at the end of the textbox's contents.
-      matchedLink.setSelectionRange(matchedLink.value.length, matchedLink.value.length);
-    } else {
-      // When we're opening the link in the current tab, don't navigate to the selected link immediately;
-      // we want to give the user some feedback depicting which link they've selected by focusing it.
-      if (!shouldOpenLinkHintInNewTab)
-        setTimeout(function() { simulateClick(matchedLink); }, 400);
-      else
-        simulateClick(matchedLink);
-      matchedLink.focus();
+  if (linksMatched.length < 2) {
+    if (linksMatched.length == 1) {
+      var matchedLink = linksMatched[0];
+      if (isSelectable(matchedLink)) {
+        matchedLink.focus();
+        // When focusing a textbox, put the selection caret at the end of the textbox's contents.
+        matchedLink.setSelectionRange(matchedLink.value.length, matchedLink.value.length);
+        //and deactivate link hints mode (even if repeat is set), so the user can use the control.
+        deactivateLinkHintsMode();
+      } else {
+        // When we're opening the link in the current tab, don't navigate to the selected link immediately;
+        // we want to give the user some feedback depicting which link they've selected by focusing it.
+        if (!shouldOpenLinkHintInNewTab)
+          setTimeout(function() { simulateClick(matchedLink); }, 400);
+        else
+          simulateClick(matchedLink);
+        matchedLink.focus();
+      }
     }
-    deactivateLinkHintsMode();
+
+    if (!repeatLinkHintsMode){
+      deactivateLinkHintsMode();
+    } else {
+      activateLinkHintsModeToOpenInNewTab();
+    }
   }
 }
 
@@ -239,6 +253,7 @@ function deactivateLinkHintsMode() {
   hintKeystrokeQueue = [];
   document.removeEventListener("keydown", onKeyDownInLinkHintsMode, true);
   linkHintsModeActivated = false;
+  repeatLinkHintsMode = false;
 }
 
 /*
