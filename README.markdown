@@ -36,6 +36,7 @@ Navigating the current page:
     <c-b>   scroll up a full page
     f       activate link hints mode to open in current tab
     F       activate link hints mode to open in new tab
+    <c-F>   repeatedly enter link hints mode to open links in new tabs
     r       reload
     gf      view source
     zi      zoom in
