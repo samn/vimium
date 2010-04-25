@@ -152,6 +152,7 @@ function onKeyDownInLinkHintsMode(event) {
 function updateLinkHints() {
   var matchString = hintKeystrokeQueue.join("");
   var linksMatched = highlightLinkMatches(matchString);
+  var repeat = repeatLinkHintsMode;
   if (linksMatched.length < 2) {
     if (linksMatched.length == 1) {
       var matchedLink = linksMatched[0];
@@ -160,7 +161,7 @@ function updateLinkHints() {
         // When focusing a textbox, put the selection caret at the end of the textbox's contents.
         matchedLink.setSelectionRange(matchedLink.value.length, matchedLink.value.length);
         //and deactivate link hints mode (even if repeat is set), so the user can use the control.
-        deactivateLinkHintsMode();
+        repeat = false;
       } else {
         // When we're opening the link in the current tab, don't navigate to the selected link immediately;
         // we want to give the user some feedback depicting which link they've selected by focusing it.
@@ -172,9 +173,9 @@ function updateLinkHints() {
       }
     }
 
-    if (!repeatLinkHintsMode){
-      deactivateLinkHintsMode();
-    } else {
+    deactivateLinkHintsMode();
+    if (repeat) {
+      repeatLinkHintsMode = true;
       activateLinkHintsModeToOpenInNewTab();
     }
   }
